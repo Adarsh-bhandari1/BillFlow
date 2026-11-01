@@ -47,7 +47,11 @@ CREATE TABLE IF NOT EXISTS usage_events (
     -- CRITICAL: Prevents double-counting at the DB level
     CONSTRAINT unique_idempotency UNIQUE (tenant_id, idempotency_key)
 );
-
+CREATE TABLE IF NOT EXISTS processed_stripe_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stripe_event_id VARCHAR(255) NOT NULL UNIQUE,
+    processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 -- Indexes for performance
 CREATE INDEX idx_usage_events_tenant ON usage_events(tenant_id);
 CREATE INDEX idx_usage_events_timestamp ON usage_events(timestamp);

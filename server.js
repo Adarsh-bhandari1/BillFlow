@@ -1,17 +1,22 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import meteringRoutes from './routes/metering.js';
+import express from "express";
+import dotenv from "dotenv";
+import meteringRoutes from "./routes/metering.js";
+import webhookRoutes from "./routes/webhooks.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use('/api', meteringRoutes);
+app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
 
-app.get('/', (req, res) => {
-  res.json({ message: 'BillFlow API is running' });
+app.use(express.json());
+
+app.use("/api", meteringRoutes);
+app.use("/api", webhookRoutes);
+
+app.get("/", (req, res) => {
+  res.json({ message: "BillFlow API is running" });
 });
 
 app.listen(PORT, () => {
