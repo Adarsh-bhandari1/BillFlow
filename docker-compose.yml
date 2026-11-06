@@ -1,5 +1,3 @@
-# docker-compose.yml
-version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
@@ -8,8 +6,9 @@ services:
       POSTGRES_USER: billflow_user
       POSTGRES_PASSWORD: billflow_pass
       POSTGRES_DB: billflow_db
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

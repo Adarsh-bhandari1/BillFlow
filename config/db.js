@@ -6,6 +6,7 @@ const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: false,
 });
 
 pool.on("connect", () => {
@@ -13,7 +14,7 @@ pool.on("connect", () => {
 });
 
 pool.on("error", (err) => {
-  console.error(" Unexpected DB error:", err.message);
+  console.error("Unexpected DB error:", err.message);
   process.exit(-1);
 });
 
