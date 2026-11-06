@@ -1,3 +1,4 @@
+// server.js
 import express from "express";
 import dotenv from "dotenv";
 import meteringRoutes from "./routes/metering.js";
@@ -10,8 +11,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }));
 
+// Standard JSON parser for all other routes
 app.use(express.json());
 
+// Mount routes AFTER middleware configuration
 app.use("/api", meteringRoutes);
 app.use("/api", webhookRoutes);
 
