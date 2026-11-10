@@ -4,7 +4,7 @@ import pool from "../config/db.js";
 
 const router = express.Router();
 
-router.post("/webhooks/stripe", async (req, res) => {
+router.post("/stripe", async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -57,13 +57,14 @@ router.post("/webhooks/stripe", async (req, res) => {
     res.status(500).json({ error: "Processing failed" });
   }
 });
-
 async function handleCheckoutCompleted(session) {
   const { customer, metadata } = session;
   const tenantId = metadata?.tenant_id;
-
   if (!tenantId) {
-    throw new Error("Missing tenant_id in checkout session metadata");
+    console.warn(
+      ` Skipping checkout.session.completed: Missing tenant_id metadata (Event: ${session.id})`,
+    );
+    return;
   }
 
   await pool.query(`UPDATE tenants SET stripe_customer_id = $1 WHERE id = $2`, [
