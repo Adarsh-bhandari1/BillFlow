@@ -1,8 +1,8 @@
-// routes/metering.js
 import express from "express";
 import MeterService from "../services/MeterService.js";
 import QuotaService from "../services/QuotaService.js";
 import CostService from "../services/CostService.js";
+import pool from "../config/db.js";
 
 const router = express.Router();
 
@@ -99,11 +99,67 @@ router.post("/meter/cost", async (req, res) => {
 
 router.get("/usage/:tenantId", async (req, res) => {
   try {
-    const usage = await MeterService.getMonthlyUsage(req.params.tenantId);
-    const cost = await CostService.calculateCost(req.params.tenantId);
+    const { tenantId } = req.params;
+    const { range = "month" } = req.query; 
+    const now = new Date();
+    let startDate;
+    switch (range) {
+      case "day":
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case "week":
+        const dayOfWeek = now.getDay();
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - dayOfWeek);
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case "year":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default: 
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const usageQuery = `
+      SELECT type, SUM(quantity) as total_quantity
+      FROM usage_events
+      WHERE tenant_id = $1 AND timestamp >= $2
+      GROUP BY type;
+    `;
+    const usageResult = await pool.query(usageQuery, [tenantId, startDate]);
+
+    const usageMap = {};
+    usageResult.rows.forEach((row) => {
+      usageMap[row.type] = Number(row.total_quantity);
+    });
+
+    const subQuery = `
+      SELECT s.status, p.name as plan_name, p.limits
+      FROM subscriptions s
+      JOIN plans p ON s.plan_id = p.id
+      WHERE s.tenant_id = $1 AND s.status = 'active'
+      LIMIT 1;
+    `;
+    const subResult = await pool.query(subQuery, [tenantId]);
+
+    const subscription =
+      subResult.rows.length > 0
+        ? {
+            status: subResult.rows[0].status,
+            planName: subResult.rows[0].plan_name,
+            limits: subResult.rows[0].limits || {},
+          }
+        : null;
+
+    const cost = await CostService.calculateCost(tenantId);
 
     res.json({
-      usage,
+      tenantId,
+      range,
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      usage: usageMap,
+      subscription,
       cost: cost || {
         baseSubscriptionCents: 0,
         tokenUsageCents: 0,
