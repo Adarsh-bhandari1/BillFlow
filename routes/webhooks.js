@@ -60,9 +60,11 @@ router.post("/stripe", async (req, res) => {
 async function handleCheckoutCompleted(session) {
   const { customer, metadata } = session;
   const tenantId = metadata?.tenant_id;
+  const planName = metadata?.plan_name || "Pro";
+
   if (!tenantId) {
     console.warn(
-      ` Skipping checkout.session.completed: Missing tenant_id metadata (Event: ${session.id})`,
+      `Skipping checkout.session.completed: Missing tenant_id metadata (Event: ${session.id})`,
     );
     return;
   }
@@ -73,14 +75,16 @@ async function handleCheckoutCompleted(session) {
   ]);
 
   const planResult = await pool.query(
-    "SELECT id FROM plans WHERE name = 'Pro' LIMIT 1",
+    "SELECT id FROM plans WHERE name = $1 LIMIT 1",
+    [planName],
   );
-  if (!planResult.rows.length) throw new Error("Pro plan not found");
+  if (!planResult.rows.length) throw new Error(`Plan '${planName}' not found`);
 
   await pool.query(
     `INSERT INTO subscriptions (tenant_id, plan_id, status, current_period_end, stripe_subscription_id)
      VALUES ($1, $2, 'active', NOW() + INTERVAL '30 days', $3)
-     ON CONFLICT DO NOTHING`,
+     ON CONFLICT (stripe_subscription_id) DO UPDATE 
+        SET status = 'active', current_period_end = NOW() + INTERVAL '30 days'`,
     [tenantId, planResult.rows[0].id, session.subscription],
   );
 }
