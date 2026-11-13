@@ -1,0 +1,9 @@
+run: docker compose up --build
+seed: docker exec -i billflow_db psql -U billflow_user -d billflow_db < seed.sql
+test: npm test  # Optional if you don't have tests
+base_url: http://localhost:3000
+endpoints:
+  - POST /api/meter
+  - GET /api/usage/:tenantId
+  - POST /api/webhooks/stripe
+  - GET /api/admin/tenants
