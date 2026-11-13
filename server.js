@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import meteringRoutes from "./routes/metering.js";
 import webhookRoutes from "./routes/webhooks.js";
+import adminRoutes from "./routes/admin.js";
 
 dotenv.config();
 
@@ -14,7 +15,7 @@ app.use(express.json());
 
 app.use("/api", meteringRoutes);
 app.use("/api", webhookRoutes);
-
+app.use("/api/admin", adminRoutes);
 app.get("/", (req, res) => {
   res.json({ message: "BillFlow API is running" });
 });
